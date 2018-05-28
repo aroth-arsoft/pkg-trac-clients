@@ -1,0 +1,27 @@
+Source: trac-clients
+Section: python
+Priority: optional
+Maintainer: Andreas Roth <aroth@arsoft-online.com>
+Build-Depends: debhelper (>= 9), python (>= 2.7), dh-python, python-setuptools
+X-Python-Version: >=2.7
+Standards-Version: 4.1.4
+Homepage: https://trac-hacks.org/wiki/ClientsPlugin
+
+Package: trac-clients
+Architecture: all
+Depends: ${python:Depends}, ${misc:Depends}, trac (>= 0.11.1)
+Description: plugin adds capabilities to Trac to manage different clients
+ Many people and organizations use Trac internally or privately to manage
+ tasks they perform for different clients. This plugin adds capabilities
+ to Trac to help manage different clients.
+ .
+ Key features:
+  - Add, edit and remove clients via the Trac Admin interface.
+  - Define a default "Hourly Rate" for each client, useful when used in
+    conjunction with WorkLogPlugin and TimingAndEstimationPlugin.
+  - Adds "Client Work Summary" report for use with TimingAndEstimationPlugin.
+  - Flexible Event structure to keep clients selectively informed by:
+  - Defining custom events which tie together Summaries and Actions.
+  - Defining special blocks (via a WikiProcessor) in which you can embed
+    content that you want to share with a client in ticket descriptions
+    and comments which can be incorporated into Summaries.

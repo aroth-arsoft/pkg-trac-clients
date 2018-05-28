@@ -1,0 +1,6 @@
+/trac-clients/
+/.debhelper/
+*.debhelper.log
+*.debhelper
+*.substvars
+/files
