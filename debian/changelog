@@ -1,3 +1,9 @@
+trac-clients (0.5+svn17183-0.4) bionic; urgency=medium
+
+  * fix more issues
+
+ -- Andreas Roth <aroth@arsoft-online.com>  Tue, 29 May 2018 07:17:54 +0200
+
 trac-clients (0.5+svn17183-0.3) bionic; urgency=medium
 
   * fix wrong quote character in select string

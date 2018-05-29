@@ -1,0 +1,21 @@
+--- a/clients/admin.py
++++ b/clients/admin.py
+@@ -82,7 +82,7 @@
+                     req.redirect(req.href.admin(cat, page))
+ 
+                 # Set default client
+-                elif 'apply' in req.args and 'default' in req.args.get():
++                elif 'apply' in req.args and 'default' in req.args:
+                     name = req.args.get('default')
+                     self.log.info('Setting default client to %s', name)
+                     self.config.set('ticket', 'default_client', name)
+--- a/clients/model.py
++++ b/clients/model.py
+@@ -11,6 +11,7 @@
+ class Client(object):
+     def __init__(self, env, name=None, db=None):
+         self.env = env
++        self.log = env.log
+         if name:
+             name = simplify_whitespace(name)
+         if name:

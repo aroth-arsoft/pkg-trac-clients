@@ -1,3 +1,5 @@
 /.pybuild/
 /TracClients.egg-info/
 /.pc/
+/build/
+/dist/
