@@ -101,7 +101,7 @@ class Client(object):
             db = env.get_read_db()
         cursor = db.cursor()
         cursor.execute("""
-            SELECT name, description, default_rate, currency
+            SELECT name, description, default_rate, currency "
             FROM client ORDER BY name
             """)
         for name, description, default_rate, currency in cursor:
