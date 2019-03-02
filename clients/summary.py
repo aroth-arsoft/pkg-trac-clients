@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from trac.core import *
+from trac.core import Interface
 
 
 class IClientSummaryProvider(Interface):

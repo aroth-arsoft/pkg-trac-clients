@@ -1,18 +1,8 @@
-import re
-import os
-import sys
-import locale
-import time
-import codecs
-from datetime import datetime
-from optparse import OptionParser
-from StringIO import StringIO
+# -*- coding: utf-8 -*-
 
-from trac.core import *
-from trac.env import open_environment
-from trac.util.datefmt import format_date, to_datetime
+from trac.core import Component, implements
+from trac.util.datefmt import format_date
 from trac.wiki import wiki_to_html
-from genshi import escape
 
 from lxml import etree
 from clients.summary import IClientSummaryProvider
@@ -52,7 +42,6 @@ class ClientTicketChanges(Component):
                     neg = False
                     if hrs < 0:
                         neg = True
-                        hours *= -1
                     mins = floor((hrs - floor(hrs)) * 60)
                     str = ''
                     if neg:
@@ -61,7 +50,7 @@ class ClientTicketChanges(Component):
                         str = "%s%sh" % (str, int(floor(hrs)))
                     if mins:
                         str = "%s %sm" % (str, int(mins))
-                    return str;
+                    return str
             return 'No estimate available'
 
         client = self.client
@@ -74,12 +63,11 @@ class ClientTicketChanges(Component):
             etree.SubElement(xclient, 'lastupdate').text = myformat_date(
                 fromdate)
 
-        db = self.env.get_read_db()
         have_data = False
         # Load in any changes that have happend
         sql = ("""\
-          SELECT t.id, t.summary, t.description, t.status, t.resolution, t.milestone, m.due,
-            tchng.field, tchng.oldvalue, tchng.newvalue
+          SELECT t.id, t.summary, t.description, t.status, t.resolution,
+            t.milestone, m.due, tchng.field, tchng.oldvalue, tchng.newvalue
           FROM ticket_custom tcust
           INNER JOIN ticket AS t ON tcust.ticket=t.id
           INNER JOIN ticket_change AS tchng ON t.id=tchng.ticket
@@ -99,18 +87,20 @@ class ClientTicketChanges(Component):
               AND sm.due > 0)
           ORDER BY t.time
           """)
-        cur2 = db.cursor()
-        cur2.execute(sql, (client, fromdate * 1000000, todate * 1000000))
         changes = etree.SubElement(xml, 'changes')
         lasttid = 0
-        for tid, summary, description, status, resolution, milestone, due, cgfield, oldvalue, newvalue in cur2:
+        for tid, summary, description, status, resolution, milestone, \
+                due, cgfield, oldvalue, newvalue \
+                in self.env.db_query(sql, (client, fromdate * 1000000,
+                                           todate * 1000000)):
             text = ''
             if 'status' == cgfield:
                 text = 'Status changed from "%s" to "%s"' % (
-                oldvalue, newvalue)
+                    oldvalue, newvalue)
             elif 'milestone' == cgfield:
-                text = 'Milestone changed from "%s" to "%s" - please check for revised delivery date.' % (
-                oldvalue, newvalue)
+                text = 'Milestone changed from "%s" to "%s" - ' \
+                       'please check for revised delivery date.' \
+                       % (oldvalue, newvalue)
             elif 'resolution' == cgfield:
                 if oldvalue and not newvalue:
                     text = 'Resolution removed'
@@ -118,7 +108,7 @@ class ClientTicketChanges(Component):
                     text = 'Resolution set to "%s"' % (newvalue)
                 else:
                     text = 'Resolution changed from "%s" to "%s"' % (
-                    oldvalue, newvalue)
+                        oldvalue, newvalue)
             elif 'comment' == cgfield:
                 # Todo - extract...
                 text = extract_client_text(newvalue).strip()

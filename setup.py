@@ -32,7 +32,7 @@ setup(name='TracClients',
               'clients.action_zendesk_forum = clients.action_zendesk_forum',
           ]
       },
-      install_requires=['Trac'],
+      install_requires=['Trac', 'lxml'],
       test_suite='clients.tests.test_suite',
       tests_require=[]
       )

@@ -98,12 +98,12 @@ class ClientMilestoneSummary(Component):
               AND (sm.due > %s OR sm.completed > %s))
           ORDER BY m.due ASC
           """)
-        cur2 = db.cursor()
         now = int(time.time() * 1000000)
-        cur2.execute(sql, (client, now, (now - (7 * 24 * 60 * 60 * 1000000))))
+        now2 = now - (7 * 24 * 60 * 60 * 1000000)
         xsummary = etree.SubElement(xml, 'summary')
-        for (tid, summary, description, status, milestone, due, completed,
-             mdescription, estimatedhours, totalhours) in cur2:
+        for tid, summary, description, status, milestone, due, completed, \
+                mdescription, estimatedhours, totalhours \
+                in self.env.db_query(sql, (client, now, now2)):
             have_data = True
             if milestone:
                 if milestone not in milestones:

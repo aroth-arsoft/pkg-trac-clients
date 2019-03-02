@@ -9,10 +9,8 @@ from trac.wiki.parser import WikiParser
 
 
 class ClientWikiProcessor(Component):
-    implements(IWikiMacroProvider)
 
-    def __init__(self):
-        pass
+    implements(IWikiMacroProvider)
 
     def get_macros(self):
         return ['client']
@@ -53,10 +51,8 @@ def extract_client_text(text, sep="----\n"):
 
 
 class TestProcessor(Component):
-    implements(IWikiMacroProvider)
 
-    def __init__(self):
-        pass
+    implements(IWikiMacroProvider)
 
     def get_macros(self):
         return ['clientx']
@@ -65,13 +61,10 @@ class TestProcessor(Component):
         return 'Just a test'
 
     def expand_macro(self, formatter, name, content):
-        db = self.env.get_read_db()
-        cursor = db.cursor()
-        cursor.execute("""
-            SELECT text FROM wiki WHERE name=%s ORDER BY version DESC LIMIT 1
-            """, ("WikiStart",))
-        try:
-            text = extract_client_text(cursor.fetchone()[0])
+        for raw_text, in self.env.db_query("""
+                SELECT text FROM wiki
+                WHERE name=%s
+                ORDER BY version DESC LIMIT 1
+                """, ("WikiStart",)):
+            text = extract_client_text(raw_text)
             return wiki_to_html(text, self.env, formatter.req)
-        except:
-            return 'B0rken'

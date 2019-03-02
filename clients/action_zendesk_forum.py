@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import lxml
 import httplib
 import urlparse
-from lxml import etree
 
 from trac.core import Component, implements
 
@@ -64,8 +64,9 @@ class ClientActionZendesk(Component):
                 event.action_options['XSLT']['value']:
             return False
         try:
-            self.transform = etree.XSLT(
-                etree.fromstring(str(event.action_options['XSLT']['value'])))
+            self.transform = lxml.etree.XSLT(
+                lxml.etree.fromstring(
+                    str(event.action_options['XSLT']['value'])))
         except:
             print "Error: Cannot load/parse stylesheet"
             return False

@@ -57,11 +57,9 @@ class ClientEventsAdminPanel(TicketAdminPanel):
                     if not sel:
                         raise TracError('No client event selected')
 
-                    @self.env.with_transaction()
-                    def do_delete(db):
+                    with self.env.db_transaction:
                         for name in sel:
-                            clev = ClientEvent(self.env, name, db=db)
-                            clev.delete(db=db)
+                            ClientEvent(self.env, name).delete()
 
                     req.redirect(req.href.admin(cat, page))
 

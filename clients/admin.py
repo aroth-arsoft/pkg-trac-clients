@@ -34,22 +34,20 @@ class ClientAdminPanel(TicketAdminPanel):
                     clnt.currency = req.args.get('currency')
                     clnt.update()
 
-                    @self.env.with_transaction()
-                    def do_client_event_updates(db):
-                        for clev in events:
-                            for option in clev.summary_client_options:
-                                arg = 'summary-option-%s-%s' \
-                                      % (clev.md5,
-                                         clev.summary_client_options[option]['md5'])
-                                clev.summary_client_options[option]['value'] = \
-                                    req.args.get(arg)
-                            for option in clev.action_client_options:
-                                arg = 'action-option-%s-%s' \
-                                      % (clev.md5,
-                                         clev.action_client_options[option]['md5'])
-                                clev.action_client_options[option]['value'] = \
-                                    req.args.get(arg)
-                            clev.update_options(client, db)
+                    for clev in events:
+                        for option in clev.summary_client_options:
+                            arg = 'summary-option-%s-%s' \
+                                  % (clev.md5,
+                                     clev.summary_client_options[option]['md5'])
+                            clev.summary_client_options[option]['value'] = \
+                                req.args.get(arg)
+                        for option in clev.action_client_options:
+                            arg = 'action-option-%s-%s' \
+                                  % (clev.md5,
+                                     clev.action_client_options[option]['md5'])
+                            clev.action_client_options[option]['value'] = \
+                                req.args.get(arg)
+                        clev.update_options(client)
 
                     req.redirect(req.href.admin(cat, page))
                 elif 'cancel' in req.args:
@@ -73,16 +71,14 @@ class ClientAdminPanel(TicketAdminPanel):
                     if not sel:
                         raise TracError('No client selected')
 
-                    @self.env.with_transaction()
-                    def do_delete(db):
+                    with self.env.db_transaction:
                         for name in sel:
-                            clnt = Client(self.env, name, db=db)
-                            clnt.delete(db=db)
+                            Client(self.env, name).delete()
 
                     req.redirect(req.href.admin(cat, page))
 
                 # Set default client
-                elif 'apply' in req.args and 'default' in req.args.get():
+                elif 'apply' in req.args and 'default' in req.args:
                     name = req.args.get('default')
                     self.log.info('Setting default client to %s', name)
                     self.config.set('ticket', 'default_client', name)

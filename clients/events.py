@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 import hashlib
 import time
@@ -39,26 +40,25 @@ class ClientEventsSystem(Component):
 
 
 class ClientEvent(object):
-    def __init__(self, env, name=None, client=None, db=None):
+    def __init__(self, env, name=None, client=None):
         self.env = env
+        self.log = env.log
         if name:
             name = simplify_whitespace(name)
         if name:
-            db = self.env.get_read_db()
-            cursor = db.cursor()
-            cursor.execute("""
-                SELECT summary, action, lastrun
-                FROM client_events WHERE name=%s
-                """, (name,))
-            row = cursor.fetchone()
-            if not row:
+            for row in self.env.db_query("""
+                    SELECT summary, action, lastrun
+                    FROM client_events WHERE name=%s
+                    """, (name,)):
+                self.md5 = hashlib.md5(name).hexdigest()
+                self.name = self._old_name = name
+                self.summary = row[0] or ''
+                self.action = row[1] or ''
+                self.lastrun = row[2] or 0
+                self._load_options(client)
+                break
+            else:
                 raise TracError('Client Event %s does not exist.' % name)
-            self.md5 = hashlib.md5(name).hexdigest()
-            self.name = self._old_name = name
-            self.summary = row[0] or ''
-            self.action = row[1] or ''
-            self.lastrun = row[2] or 0
-            self._load_options(client, db)
         else:
             self.name = self._old_name = None
             self.summary = ''
@@ -67,38 +67,28 @@ class ClientEvent(object):
 
     exists = property(fget=lambda self: self._old_name is not None)
 
-    def delete(self, db=None):
+    def delete(self):
         assert self.exists, 'Cannot deleting non-existent client event'
+        self.log.info("Deleting client event %s", self.name)
+        self.env.db_transaction("""
+            DELETE FROM client_events WHERE name=%s
+            """, (self.name,))
+        self.name = self._old_name = None
 
-        @self.env.with_transaction(db)
-        def do_delete(db):
-            cursor = db.cursor()
-            self.log.info("Deleting client event %s", self.name)
-            cursor.execute("""
-                DELETE FROM client_events WHERE name=%s
-                """, (self.name,))
-
-            self.name = self._old_name = None
-
-    def insert(self, db=None):
+    def insert(self):
         assert not self.exists, 'Cannot insert existing client event'
         system = ClientEventsSystem(self.env)
         assert system.get_summary(self.summary) is not None, 'Invalid summary'
         assert system.get_action(self.action) is not None, 'Invalid action'
         self.name = simplify_whitespace(self.name)
         assert self.name, 'Cannot create client event with no name'
+        self.log.debug("Creating new client event '%s'", self.name)
+        self.env.db_transaction("""
+            INSERT INTO client_events (name,summary,action,lastrun)
+            VALUES (%s,%s,%s,%s)
+            """, (self.name, self.summary, self.action, int(time.time())))
 
-        @self.env.with_transaction(db)
-        def do_insert(db):
-            # Todo: verify client_event with name does not currently exist...
-            cursor = db.cursor()
-            self.log.debug("Creating new client event '%s'", self.name)
-            cursor.execute("""
-                INSERT INTO client_events (name,summary,action,lastrun)
-                VALUES (%s,%s,%s,%s)
-                """, (self.name, self.summary, self.action, int(time.time())))
-
-    def _load_client_options(self, client, opttype, db):
+    def _load_client_options(self, client, opttype):
         assert self.exists, 'Cannot update non-existent client event'
         assert opttype in ('summary', 'action'), 'Invalid options type'
         system = ClientEventsSystem(self.env)
@@ -113,11 +103,10 @@ class ClientEvent(object):
 
         options = {}
         table = 'client_event_' + opttype + '_options'
-        cursor = db.cursor()
-        cursor.execute("""
-            SELECT name, value FROM %s WHERE client_event=%%s AND client=%%s
-            """ % table, (self._old_name, client or ''))
-        for name, value in cursor:
+        for name, value in self.env.db_query("""
+                SELECT name, value FROM %s
+                WHERE client_event=%%s AND client=%%s
+                """ % table, (self._old_name, client or '')):
             options[name] = value
         rv = {}
         for option in thing.options(client):
@@ -129,16 +118,16 @@ class ClientEvent(object):
             rv[option['name']] = option
         return rv
 
-    def _load_options(self, client, db):
-        self.summary_options = self._load_client_options(None, 'summary', db)
-        self.action_options = self._load_client_options(None, 'action', db)
+    def _load_options(self, client):
+        self.summary_options = self._load_client_options(None, 'summary')
+        self.action_options = self._load_client_options(None, 'action')
         if client:
             self.summary_client_options = \
-                self._load_client_options(client, 'summary', db)
+                self._load_client_options(client, 'summary')
             self.action_client_options = \
-                self._load_client_options(client, 'action', db)
+                self._load_client_options(client, 'action')
 
-    def _update_client_options(self, client, opttype, options, db=None):
+    def _update_client_options(self, client, opttype, options):
         assert self.exists, 'Cannot update non-existent client event'
         assert opttype in ('summary', 'action'), 'Invalid options type'
         system = ClientEventsSystem(self.env)
@@ -149,12 +138,10 @@ class ClientEvent(object):
             thing = system.get_action(self.action)
             assert thing is not None, 'Invalid action'
 
-        @self.env.with_transaction(db)
-        def do_update_client_options(db):
-            table = 'client_event_' + opttype + '_options'
-            cursor = db.cursor()
-            self.log.info('Updating client event "%s"', self._old_name)
-            cursor.execute("""
+        table = 'client_event_' + opttype + '_options'
+        self.log.info('Updating client event "%s"', self._old_name)
+        with self.env.db_transaction as db:
+            db("""
                 DELETE FROM %s WHERE client_event=%%s AND client=%%s
                 """ % table, (self._old_name, client or ''))
 
@@ -163,40 +150,35 @@ class ClientEvent(object):
                 valid_options.append(option['name'])
             for option in options.values():
                 if option['name'] in valid_options:
-                    cursor.execute("""
+                    db("""
                         INSERT INTO %s (client_event, client, name, value)
                         VALUES (%%s, %%s, %%s, %%s)
                         """ % table, (self._old_name, client or '',
                                       option['name'], option['value']))
 
-    def update_options(self, client=None, db=None):
+    def update_options(self, client=None):
         assert self.exists, 'Cannot update non-existent client event'
 
         if client:
             self._update_client_options(client, 'summary',
-                                        self.summary_client_options, db)
+                                        self.summary_client_options)
             self._update_client_options(client, 'action',
-                                        self.action_client_options, db)
+                                        self.action_client_options)
         else:
-            self._update_client_options(None, 'summary', self.summary_options,
-                                        db)
-            self._update_client_options(None, 'action', self.action_options,
-                                        db)
+            self._update_client_options(None, 'summary', self.summary_options)
+            self._update_client_options(None, 'action', self.action_options)
 
-    def update(self, db=None):
+    def update(self):
         assert self.exists, 'Cannot update non-existent client event'
         self.name = simplify_whitespace(self.name)
         assert self.name, 'Cannot update client event with no name'
 
-        @self.env.with_transaction(db)
-        def do_update(db):
-            cursor = db.cursor()
-            self.log.info('Updating client event "%s"', self._old_name)
-            cursor.execute("""
-                UPDATE client_events SET lastrun=%s WHERE name=%s
-                """, (int(self.lastrun), self._old_name))
+        self.log.info('Updating client event "%s"', self._old_name)
+        self.env.db_transction("""
+            UPDATE client_events SET lastrun=%s WHERE name=%s
+            """, (int(self.lastrun), self._old_name))
 
-    def trigger(self, req, client, fromdate, todate, db=None):
+    def trigger(self, req, client, fromdate, todate):
         assert self.exists, "Cannot trigger client event that does not exist"
         system = ClientEventsSystem(self.env)
         summary = system.get_summary(self.summary)
@@ -214,46 +196,37 @@ class ClientEvent(object):
         self.log.debug("Performing action")
         return action.perform(req, summary.get_summary(req, fromdate, todate))
 
-    def select(cls, env, client=None, db=None):
-        if not db:
-            db = env.get_read_db()
-        cursor = db.cursor()
-        cursor.execute("""
-            SELECT name,summary,action,lastrun
-            FROM client_events ORDER BY name
-            """)
-        for name, summary, action, lastrun in cursor:
+    @classmethod
+    def select(cls, env, client=None):
+        for name, summary, action, lastrun in env.db_query("""
+                SELECT name,summary,action,lastrun
+                FROM client_events ORDER BY name
+                """):
             clev = cls(env)
             clev.md5 = hashlib.md5(name).hexdigest()
             clev.name = clev._old_name = name
             clev.summary = summary or ''
             clev.action = action or ''
             clev.lastrun = lastrun or 0
-            clev._load_options(client, db)
+            clev._load_options(client)
             yield clev
 
-    select = classmethod(select)
-
-    def triggerall(cls, env, req, event, db=None):
-        @env.with_transaction(db)
-        def do_triggerall(db):
+    @classmethod
+    def triggerall(cls, env, req, event):
+        with env.db_transaction as db:
             try:
-                ev = cls(env, event, None, db)
+                ev = cls(env, event, None)
             except:
                 env.log.error("Could not run the event %s", event)
                 return
             # ev.lastrun = 1
             now = int(time.time())
 
-            cursor = db.cursor()
-            cursor.execute("""
-                SELECT name FROM client ORDER BY name
-                """)
-            for client, in cursor:
+            for client, in db("""
+                    SELECT name FROM client ORDER BY name
+                    """):
                 env.log.info("Running event for client: %s", client)
                 clev = cls(env, event, client)
                 clev.trigger(req, client, ev.lastrun, now)
             ev.lastrun = now
             ev.update()
-
-    triggerall = classmethod(triggerall)
