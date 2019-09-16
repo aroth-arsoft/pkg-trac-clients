@@ -1,3 +1,11 @@
+trac-clients (0.5+svn17497-1) disco; urgency=medium
+
+  * Automatic update 0.5 from https://trac-
+    hacks.org/browser/clientsplugin/trunk/?format=zip&rev=17497
+    revision 17497
+
+ -- Andreas Roth <aroth@arsoft-online.com>  Mon, 16 Sep 2019 19:27:41 +0200
+
 trac-clients (0.5+svn17346-0.1) cosmic; urgency=medium
 
   * include latest changes in revision 17346
