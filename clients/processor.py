@@ -4,7 +4,7 @@ import StringIO
 
 from trac.core import Component, implements
 from trac.wiki.api import IWikiMacroProvider
-from trac.wiki.formatter import wiki_to_html
+from trac.wiki.formatter import format_to_oneliner
 from trac.wiki.parser import WikiParser
 
 
@@ -22,7 +22,7 @@ class ClientWikiProcessor(Component):
     def expand_macro(self, formatter, name, content):
         return '<fieldset class="client"><legend>' \
                'Comments to Client</legend>%s</fieldset>' \
-               % wiki_to_html(content, self.env, formatter.req)
+               % format_to_oneliner(content, self.env, formatter.req)
 
 
 def extract_client_text(text, sep="----\n"):
@@ -67,4 +67,4 @@ class TestProcessor(Component):
                 ORDER BY version DESC LIMIT 1
                 """, ("WikiStart",)):
             text = extract_client_text(raw_text)
-            return wiki_to_html(text, self.env, formatter.req)
+            return format_to_oneliner(text, self.env, formatter.req)

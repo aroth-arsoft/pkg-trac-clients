@@ -5,7 +5,7 @@ from lxml import etree
 
 from trac.core import Component, implements
 from trac.util.datefmt import format_date
-from trac.wiki import wiki_to_html
+from trac.wiki import format_to_oneliner
 
 from clients.summary import IClientSummaryProvider
 from clients.processor import extract_client_text
@@ -118,7 +118,7 @@ class ClientMilestoneSummary(Component):
                             myformat_date(completed)
                     if mdescription:
                         wdescription = \
-                            wiki_to_html(extract_client_text(mdescription),
+                            format_to_oneliner(extract_client_text(mdescription),
                                          self.env, req)
                         xmilestone.append(
                             etree.XML('<description>%s</description>'
@@ -136,7 +136,7 @@ class ClientMilestoneSummary(Component):
             ticket = etree.SubElement(xsummary, 'ticket')
             etree.SubElement(ticket, 'id').text = str(tid)
             etree.SubElement(ticket, 'summary').text = summary
-            text = wiki_to_html(extract_client_text(description),
+            text = format_to_oneliner(extract_client_text(description),
                                 self.env, req)
             ticket.append(etree.XML('<description>%s</description>' % text))
             etree.SubElement(ticket, 'status').text = status
