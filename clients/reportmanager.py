@@ -71,7 +71,10 @@ class CustomReportManager:
                     for next_id, in self.env.db_query("""
                             SELECT MAX(id) FROM report
                             """):
-                        next_id = int(next_id) + 1
+                        if next_id is None:
+                            next_id = 0
+                        else:
+                            next_id = int(next_id) + 1
                     self.log.debug("Inserting new report with uuid '%s'",
                                    uuid)
 
@@ -81,7 +84,10 @@ class CustomReportManager:
                             SELECT MAX(ordering) FROM custom_report
                             WHERE maingroup=%s AND subgroup=%s
                             """, (maingroup, subgroup)):
-                        ordering = int(ordering) + 1
+                        if ordering is None:
+                            ordering = 0
+                        else:
+                            ordering = int(ordering) + 1
                         break
                     else:
                         ordering = 0
