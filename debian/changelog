@@ -1,3 +1,9 @@
+trac-clients (0.5-1) focal; urgency=medium
+
+  * Automatic update 0.5
+
+ -- Andreas Roth <aroth@arsoft-online.com>  Thu, 15 Apr 2021 07:15:17 +0200
+
 trac-clients (0.5+svn17497-1) disco; urgency=medium
 
   * Automatic update 0.5 from https://trac-
