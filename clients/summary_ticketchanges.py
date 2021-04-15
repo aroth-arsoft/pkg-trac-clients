@@ -2,7 +2,8 @@
 
 from trac.core import Component, implements
 from trac.util.datefmt import format_date
-from trac.wiki import format_to_oneliner
+from trac.web.chrome import web_context
+from trac.wiki.formatter import format_to_html
 
 from lxml import etree
 from clients.summary import IClientSummaryProvider
@@ -129,8 +130,9 @@ class ClientTicketChanges(Component):
                 etree.SubElement(ticket, 'id').text = str(tid)
                 etree.SubElement(ticket, 'summary').text = summary
                 ticket.append(etree.XML(
-                    '<description>%s</description>' % format_to_oneliner(
-                        extract_client_text(description), self.env, req)))
+                    '<description>%s</description>'
+                    % format_to_html(self.env, web_context(req),
+                                     extract_client_text(description))))
                 etree.SubElement(ticket, 'status').text = status
                 etree.SubElement(ticket, 'resolution').text = resolution
                 etree.SubElement(ticket, 'milestone').text = milestone
@@ -138,7 +140,9 @@ class ClientTicketChanges(Component):
                 changelog = etree.SubElement(ticket, 'changelog')
 
             detail = etree.XML(
-                '<detail>%s</detail>' % format_to_oneliner(text, self.env, req))
+                '<detail>%s</detail>'
+                % format_to_html(self.env, web_context(req)),
+                                 extract_client_text(description))
             detail.set('field', cgfield)
             if oldvalue:
                 detail.set('oldvalue', oldvalue)

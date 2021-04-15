@@ -4,7 +4,8 @@ from lxml import etree
 
 from trac.core import Component, implements
 from trac.util.datefmt import format_date
-from trac.wiki import format_to_oneliner
+from trac.web.chrome import web_context
+from trac.wiki.formatter import format_to_html
 
 from clients.summary import IClientSummaryProvider
 from clients.processor import extract_client_text
@@ -108,8 +109,9 @@ class ClientMonthlyHoursSummary(Component):
             etree.SubElement(ticket, 'id').text = str(tid)
             etree.SubElement(ticket, 'summary').text = summary
             ticket.append(etree.XML(
-                '<description>%s</description>' % format_to_oneliner(
-                    extract_client_text(description), self.env, req)))
+                '<description>%s</description>'
+                % format_to_html(self.env, web_context(req),
+                                 extract_client_text(description))))
             etree.SubElement(ticket, 'status').text = status
             etree.SubElement(ticket, 'month').text = month
 
