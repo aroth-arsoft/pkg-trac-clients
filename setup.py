@@ -7,7 +7,7 @@ setup(name='TracClients',
       description="Plugin to allow management of which ticket belong to "
                   "which client",
       keywords='trac plugin ticket client',
-      version='0.5',
+      version='0.5a',
       url='https://www.trac-hacks.org/wiki/ClientsPlugin',
       license='http://www.opensource.org/licenses/mit-license.php',
       author='Colin Guthrie',
